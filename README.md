@@ -35,6 +35,46 @@
 | XGBoost             | 0.7689             |0.1264                |  0.5263    |0.0725 |0.1264    |
 
 для работы в дальнейшем я выбрала СatBoost 
-- **summission.ipymb** -  содержит код для создания базовой модели и подготовки первого самбишена на Kagle.
-- **hypothesis_1.ipynb** - проверка гипотезы об обработке выбросов. 
-                       - submission_hypothesis_1.csv - 
+- **summission.ipymb** -  содержит код для создания базовой модели и подготовки первого самбишена на Kagle. (**submission_baseline.csv**)
+- **hypothesis_1.ipynb** - проверка гипотезы об обработке выбросов.
+  
+**submission_baseline_1.csv** - замена значений, превышающих 99-перцентиль, на медианну этого столбца
+
+**submission_baseline_1_2.csv** - в перый раз я обработывала все колонки, теперь не включаю в обработку "sk_is_curr", "target", "sk_id_bureau", "sk_id_prev"
+
+**submission_baseline_1_3.csv** - гипотеза о том, чтобы сделать порог в 95 перцентиль вместо 99
+
+- **hypothesis_2.ipynb** - удаление коррелируемых признаков (**submission_baseline_2.csv**)
+- **hypothesis_3.ipynb** - создание новых признаков
+  
+**submission_baseline_3_1.csv** - credit_to_income: Отношение суммы кредита к годовому доходу (amt_credit / amt_income_total)
+annuity_to_income: Отношение аннуитетного платежа к годовому доходу (amt_annuity / amt_income_total) 
+
+**submission_baseline_3_2.csv** - добавление еще признаков
+
+**submission_baseline_3_3.csv** - обьединение результата двух предыдущих действий
+
+- **hypothesis_4.ipynb** - Соединение таблиц без использования one-hot encoding (**submission_baseline_4_1.csv**)
+- **hypothesis_5.ipynb** - Ансамблирование моделей
+
+**submission_baseline_5_1.csv** - CatBoost + LightGBM
+
+**submission_baseline_5_2.csv** - добавление новых признаков из 3 гипотезы
+- **hypothesis_6.ipynb** - ручная балансировка классов (**submission_baseline_6.csv**)
+
+  
+| гипотеза                  | privat_score|public_score|
+|---------------------------|-------------|------------|
+|submission_baseline.csv    |0.77855      |0.77336     |
+|submission_baseline_1.csv  |0.77585      |0.77291     |
+|submission_baseline_1_2.csv|0.77585      |0.77291     |
+|submission_baseline_1_3.csv|0.77585      |0.77291     |
+|submission_baseline_2.csv  |0.777720     |0.77326     |
+|submission_baseline_3_1.csv|0.77998      |0.77515     |
+|submission_baseline_3_2.csv|0.77889      |0.77544     |
+|submission_baseline_3_3.csv|0.77983      |0.77430     |
+|submission_baseline_4_1.csv|0.77191      |0.77484     |
+|submission_baseline_5_1.csv|0.77998      |0.77539     |
+|submission_baseline_5_2.csv|0.77998      |0.77515     |
+|submission_baseline_6.csv  |0.77428      |0.77337     |
+
