@@ -61,6 +61,9 @@ annuity_to_income: Отношение аннуитетного платежа к
 
 **submission_baseline_5_2.csv** - добавление новых признаков из 3 гипотезы
 - **hypothesis_6.ipynb** - ручная балансировка классов (**submission_baseline_6.csv**)
+- - **hypothesis_6.ipynb** - стратифицированная 5-ти фолдовая кросс-валидация (**submission_baseline_7_1.csv**)
+
+**submission_baseline_7.csv** - обучение на всех тренировочных данных
 
   
 | гипотеза                  | privat_score|public_score|
@@ -77,4 +80,6 @@ annuity_to_income: Отношение аннуитетного платежа к
 |submission_baseline_5_1.csv|0.77998      |0.77539     |
 |submission_baseline_5_2.csv|0.77998      |0.77515     |
 |submission_baseline_6.csv  |0.77428      |0.77337     |
+|submission_baseline_7.csv  |0.78048      |0.77625     |
+|submission_baseline_7_1.csv|0.77950      |0.77695     |
 
