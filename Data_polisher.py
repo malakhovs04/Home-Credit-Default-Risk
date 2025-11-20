@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from typing import Optional
+from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import SplineTransformer
 import warnings
@@ -34,6 +36,7 @@ class DataPolish(BaseEstimator, TransformerMixin):
         self.scaler_: Optional[StandardScaler] = None
         self.skewed_columns_: list[str] = []
         self.columns_to_keep_:Optional[list[str]] = None
+        self.categorical_columns_ = [] 
     
     def _remove_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
@@ -150,6 +153,7 @@ class DataPolish(BaseEstimator, TransformerMixin):
         df = self._scale_features(df)
 
         self.columns_to_keep_ = df.columns.tolist()
+        self.categorical_columns_ = df.select_dtypes(include=['object', 'category']).columns.tolist()
  
         return self
     
@@ -167,13 +171,14 @@ class DataPolish(BaseEstimator, TransformerMixin):
             df[cat_cols] = df[cat_cols].fillna(self.modes_)
 
         # Выбросы 
-        if self.handle_outliers and self.outlier_method == "clip":
-            for col in num_cols:
-                Q1 = self.medians_[col] - 1.5 * (df[col].quantile(0.75) - df[col].quantile(0.25))
-                Q3 = self.medians_[col] + 1.5 * (df[col].quantile(0.75) - df[col].quantile(0.25))
-                lower = Q1 - 1.5 * (df[col].quantile(0.75) - df[col].quantile(0.25))
-                upper = Q3 + 1.5 * (df[col].quantile(0.75) - df[col].quantile(0.25))
-                df[col] = df[col].clip(lower, upper)
+        if self.handle_outliers and len(num_cols) > 0:
+            Q1 = df[num_cols].quantile(0.25)
+            Q3 = df[num_cols].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+
+            df[num_cols] = df[num_cols].clip(lower_bound, upper_bound, axis=1)
 
         # Логарифмирование
         for col in self.skewed_columns_:
