@@ -175,5 +175,3 @@ class ModelTrainer:
         })
         filename = f"{self.results_dir}/submission_{self.name}.csv"
         sub.to_csv(filename, index=False)
-        print(f"Сабмит сохранён: {filename}")
-        print(f"   Val ROC-AUC: {self.val_auc:.5f} | Порог: {self.best_threshold:.4f}")
