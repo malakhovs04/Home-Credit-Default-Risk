@@ -1,85 +1,102 @@
 # Прогнозирование риска дефолта по кредитам Home Credit
 
-## Описание проекта
+![Home Credit Default Risk](https://img.shields.io/badge/Kaggle-Competition-blue?style=flat-square) ![Python](https://img.shields.io/badge/Python-3.11-green?style=flat-square) ![Libraries](https://img.shields.io/badge/Libraries-CatBoost%20%7C%20LightGBM%20%7C%20XGBoost-yellow?style=flat-square) ![Metric](https://img.shields.io/badge/Metric-AUC--ROC-red?style=flat-square)
 
-Этот проект — решение задачи [Home Credit Default Risk](https://www.kaggle.com/competitions/home-credit-default-risk) на платформе Kaggle, целью которой является прогнозирование вероятности дефолта клиента по кредиту.
-**Цели проекта:**
-- Провести детальный разведочный анализ данных (EDA).
-- Разработать и протестировать 10 гипотез для улучшения качества модели.
+## Описание проекта
+Этот проект решает задачу [Home Credit Default Risk](https://www.kaggle.com/competitions/home-credit-default-risk) на Kaggle. Цель — предсказать вероятность дефолта клиента по кредиту на основе исторических данных. 
+
+**Ключевые цели:**
+- Провести разведочный анализ данных (EDA).
+- Разработать и протестировать 10 гипотез для улучшения модели.
 - Построить базовую модель и сравнить её с улучшенными версиями.
-- Оценить модели по метрике AUC-ROC.
+- Оценить качество по метрике **AUC-ROC**.
+
+Проект включает предобработку данных, feature engineering, моделирование и ансамблирование. Результаты оцениваются локально и на Kaggle (private/public score).
 
 ## Данные
-
-Данные взяты из соревнования Kaggle и включают несколько CSV-файлов:
-- **application_train.csv / application_test.csv**: Основные данные о клиентах (122 признака, 307511 строк в train).
-- **bureau.csv**: Данные о предыдущих кредитах в других финансовых организациях.
-- **bureau_balance.csv**: Ежемесячные балансы по кредитам из бюро.
-- **POS_CASH_balance.csv**: Балансы по POS-кредитам и кредитам наличными.
+Данные из соревнования Kaggle (7 CSV-файлов):
+- **application_train/test.csv**: Основные данные о клиентах (122 признака, 307511 строк в train).
+- **bureau.csv**: Прошлые кредиты в других организациях.
+- **bureau_balance.csv**: Ежемесячные балансы по кредитам.
+- **POS_CASH_balance.csv**: Балансы по POS-кредитам.
 - **credit_card_balance.csv**: Балансы по кредитным картам.
-- **previous_application.csv**: История предыдущих заявок в Home Credit.
+- **previous_application.csv**: История заявок в Home Credit.
 - **installments_payments.csv**: История платежей по рассрочкам.
 - **HomeCredit_columns_description.csv**: Описание столбцов.
 
-## Описание файлов
-- **check_tables.ipynb** - данный файл посвящен разведочному анализу данных всех наших таблиц. Просмотрела основные моменты,  поняла логику и связь таблиц, можно переходить к работе дальше.
-- **aggregation.ipynb** - работа с пропусками, агрегации данных (оne hot-mean encoding - для категориальных признаков, по числовым признакам находим основные статистики: min, max, mean, count, sum), обьединение таблиц.
-- **model.ipynb** - тестируем и выбираем лучшую модель:
-  
-| Модель              | AUC-ROC (локально) | Accuracy             | Precision  | Recal | F-1 score|
-|---------------------|--------------------|----------------------|------------|-------|----------|
-| Logistic Regression | 0.7684             | 0.9201               |  0.5855    |0.0228 |0.0440    |
-| Random Forest       | 0.7159             | 0.9195               |  0.5263    |0.0020 |0.0040    |
-| LightGBM            | 0.7773             | 0.9201               |  0.5556    |0.0344 |0.0647    |
-| CatBoost            | 0.7846             | 0.9206               |  0.5714    |0.0550 |0.1003    |
-| XGBoost             | 0.7689             |0.1264                |  0.5263    |0.0725 |0.1264    |
+Данные обрабатываются с учетом пропусков, агрегаций (one-hot/mean encoding для категорий, статистики для числовых: min/max/mean/count/sum) и объединения таблиц.
 
-для работы в дальнейшем я выбрала СatBoost 
-- **summission.ipymb** -  содержит код для создания базовой модели и подготовки первого самбишена на Kagle. (**submission_baseline.csv**)
-- **hypothesis_1.ipynb** - проверка гипотезы об обработке выбросов.
-  
-**submission_baseline_1.csv** - замена значений, превышающих 99-перцентиль, на медианну этого столбца
+## Требования
+- **Python**: 3.11+
+- **Библиотеки**: 
+  ```
+  pandas, numpy, matplotlib, seaborn, scikit-learn, catboost, lightgbm, xgboost
+  ```
+- **Данные**: Скачайте с [Kaggle](https://www.kaggle.com/competitions/home-credit-default-risk/data) и разместите в папке `data/`.
 
-**submission_baseline_1_2.csv** - в перый раз я обработывала все колонки, теперь не включаю в обработку "sk_is_curr", "target", "sk_id_bureau", "sk_id_prev"
+## Структура проекта
+- **check_tables.ipynb**: Разведочный анализ (EDA) всех таблиц — статистики, связи, визуализации.
+- **aggregation.ipynb**: Предобработка — обработка пропусков, агрегации, объединение таблиц.
+- **model.ipynb**: Тестирование моделей (Logistic Regression, Random Forest, LightGBM, CatBoost, XGBoost). Выбрана **CatBoost** как основная.
+- **submission.ipynb**: Базовая модель и первый сабмит на Kaggle (`submission_baseline.csv`).
+- **hypothesis_*.ipynb**: Проверка 10 гипотез (каждый файл — одна гипотеза с кодом, результатами и сабмитами).
 
-**submission_baseline_1_3.csv** - гипотеза о том, чтобы сделать порог в 95 перцентиль вместо 99
+## Классы и модули
+По рекомендации, для повышения удобства и модульности кода, реализованы отдельные классы для предобработки, feature engineering и обучения моделей. Эти классы построены на базе scikit-learn (наследуют от BaseEstimator и TransformerMixin), что позволяет интегрировать их в пайплайны.
 
-- **hypothesis_2.ipynb** - удаление коррелируемых признаков (**submission_baseline_2.csv**)
-- **hypothesis_3.ipynb** - создание новых признаков
-  
-**submission_baseline_3_1.csv** - credit_to_income: Отношение суммы кредита к годовому доходу (amt_credit / amt_income_total)
-annuity_to_income: Отношение аннуитетного платежа к годовому доходу (amt_annuity / amt_income_total) 
+- **Data_polisher.py**: Класс `DataPolish` для предобработки данных.
+  - Удаляет колонки с высоким процентом пропусков (>70%), константные и низковариативные признаки.
+  - Удаляет высоко коррелирующие признаки (>0.95).
+  - Обрабатывает пропуски (медиана для числовых, мода для категориальных).
+  - Обрабатывает выбросы (по IQR), логарифмирует скошенные признаки (skew >2.0).
+  - Опционально масштабирует числовые признаки (StandardScaler).
 
-**submission_baseline_3_2.csv** - добавление еще признаков
+- **Hypotheses.py**: Классы для тестирования гипотез через feature engineering (гипотезы 8-10).
+  - `Hypothesis8`: Поведение в рассрочках — метрики недоплат, просрочек по дням, признаки реструктуризации.
+  - `Hypothesis9`: Внешние скоринги — комбинации external_source.
+  - `Hypothesis10`: Финансовые и демографические метрики — коэффициенты (e.g., credit_income_ratio, employment_age_ratio), семейные метрики, возраст/стаж.
 
-**submission_baseline_3_3.csv** - обьединение результата двух предыдущих действий
+- **ModelTrainer.py**: Класс `ModelTrainer` для обучения и оценки моделей.
+  - Поддерживает CatBoost, LightGBM, XGBoost с early stopping.
+  - Вычисляет метрики: ROC-AUC, PR-AUC, accuracy, precision, recall, F1 (с оптимальным порогом).
+  - Генерирует графики: ROC/PR кривые, feature importance.
+  - Создает сабмиты для Kaggle.
 
-- **hypothesis_4.ipynb** - Соединение таблиц без использования one-hot encoding (**submission_baseline_4_1.csv**)
-- **hypothesis_5.ipynb** - Ансамблирование моделей
+Эти классы позволяют легко комбинировать предобработку и фичи в пайплайнах, упрощая эксперименты с гипотезами.
 
-**submission_baseline_5_1.csv** - CatBoost + LightGBM
+## Выбор модели
+Тестировали 5 моделей на локальном датасете. Результаты:
 
-**submission_baseline_5_2.csv** - добавление новых признаков из 3 гипотезы
-- **hypothesis_6.ipynb** - ручная балансировка классов (**submission_baseline_6.csv**)
-- - **hypothesis_6.ipynb** - стратифицированная 5-ти фолдовая кросс-валидация (**submission_baseline_7_1.csv**)
+| Модель              | AUC-ROC (локально) | Accuracy | Precision | Recall | F1-Score |
+|---------------------|--------------------|----------|-----------|--------|----------|
+| Logistic Regression | 0.7684            | 0.9201  | 0.5855   | 0.0228 | 0.0440  |
+| Random Forest       | 0.7159            | 0.9195  | 0.5263   | 0.0020 | 0.0040  |
+| LightGBM            | 0.7773            | 0.9201  | 0.5556   | 0.0344 | 0.0647  |
+| CatBoost            | 0.7846            | 0.9206  | 0.5714   | 0.0550 | 0.1003  |
+| XGBoost             | 0.7689            | 0.1264  | 0.5263   | 0.0725 | 0.1264  |
 
-**submission_baseline_7.csv** - обучение на всех тренировочных данных
+**CatBoost** показал лучшие результаты и выбран для базовой модели.
 
-  
-| гипотеза                  | privat_score|public_score|
-|---------------------------|-------------|------------|
-|submission_baseline.csv    |0.77855      |0.77336     |
-|submission_baseline_1.csv  |0.77585      |0.77291     |
-|submission_baseline_1_2.csv|0.77585      |0.77291     |
-|submission_baseline_1_3.csv|0.77585      |0.77291     |
-|submission_baseline_2.csv  |0.777720     |0.77326     |
-|submission_baseline_3_1.csv|0.77998      |0.77515     |
-|submission_baseline_3_2.csv|0.77889      |0.77544     |
-|submission_baseline_3_3.csv|0.77983      |0.77430     |
-|submission_baseline_4_1.csv|0.77191      |0.77484     |
-|submission_baseline_5_1.csv|0.77998      |0.77539     |
-|submission_baseline_5_2.csv|0.77998      |0.77515     |
-|submission_baseline_6.csv  |0.77428      |0.77337     |
-|submission_baseline_7.csv  |0.78048      |0.77625     |
-|submission_baseline_7_1.csv|0.77950      |0.77695     |
+## Гипотезы и результаты
+Протестировано 10 гипотез. Каждая включает предобработку, обучение и сабмит на Kaggle. Результаты (AUC-ROC на Kaggle):
 
+| Гипотеза | Описание | Private Score | Public Score | Сабмит-файл |
+|----------|----------|---------------|--------------|-------------|
+| Baseline | Базовая модель (CatBoost без улучшений) | 0.77855 | 0.77336 | submission_baseline.csv |
+| 1 | Обработка выбросов (замена >99% на медиану) | 0.77585 | 0.77291 | submission_baseline_1.csv |
+| 1.2 | Исключение ключевых столбцов из обработки выбросов | 0.77585 | 0.77291 | submission_baseline_1_2.csv |
+| 1.3 | Порог выбросов на 95% вместо 99% | 0.77585 | 0.77291 | submission_baseline_1_3.csv |
+| 2 | Удаление коррелирующих признаков | 0.77772 | 0.77326 | submission_baseline_2.csv |
+| 3.1 | Новые признаки: credit_to_income, annuity_to_income | 0.77998 | 0.77515 | submission_baseline_3_1.csv |
+| 3.2 | Дополнительные новые признаки | 0.77889 | 0.77544 | submission_baseline_3_2.csv |
+| 3.3 | Объединение признаков из 3.1 и 3.2 | 0.77983 | 0.77430 | submission_baseline_3_3.csv |
+| 4 | Соединение таблиц без one-hot encoding | 0.77191 | 0.77484 | submission_baseline_4_1.csv |
+| 5.1 | Ансамбль: CatBoost + LightGBM | 0.77998 | 0.77539 | submission_baseline_5_1.csv |
+| 5.2 | Ансамбль с новыми признаками из гипотезы 3 | 0.77998 | 0.77515 | submission_baseline_5_2.csv |
+| 6 | Ручная балансировка классов | 0.77428 | 0.77337 | submission_baseline_6.csv |
+| 7 | Стратифицированная 5-фолдовая кросс-валидация | 0.77950 | 0.77695 | submission_baseline_7_1.csv |
+| 7.1 | Обучение на всех тренировочных данных | 0.78048 | 0.77625 | submission_baseline_7.csv |
+|8| Метрики недоплат, просрочек по дням| 0,76440 | 0,7667 |submission_Hypothesis8_Installments.csv |
+|9| Внешние скоринги | 0,76641 | 0.76591 | submission_Hypothesis9_Installments.csv|
+|10| Финансовые и демографические метрики| 0.77043 | 0.77449 | submission_Hypothesis10_Installments.csv |
+|11|Соединяем 8 + 9 + 10 гипотезы вместе| 0,77300 | 0,77449 |submission_comb_gup.csv |
