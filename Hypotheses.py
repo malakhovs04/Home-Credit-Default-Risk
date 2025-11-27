@@ -56,5 +56,99 @@ class Hypothesis8(BaseEstimator, TransformerMixin):
             df['ip_version_diversity'] = df[version_cols].gt(0).sum(axis=1)
             self.features_added.extend(['ip_restructured_flag', 'ip_version_diversity'])
         
-        print(f"Гипотеза 8 (Installments): +{len(self.features_added)} фич → {self.features_added}")
+        return df
+
+class Hypothesis9(BaseEstimator, TransformerMixin):
+    """
+    ГИПОТЕЗА 9: Внешние скоринги
+
+    Идея: "external_source" - агрегированные скоринги из других юанков и крединтых бюро. 
+    Их комбинация должна дать более надежную оценку, чем в отдельности
+    """
+
+
+    def __init__(self):
+        self.features_added = []
+        self.ext_weights = {'ext_source_1':3, 'ext_source_2':2, 'ext_source_3':5}
+    
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        df = X.copy()
+        self.features_added = []
+        ext_cols = ['ext_source_1', 'ext_source_2', 'ext_source_3']
+        avalibale_cols = [col for col in ext_cols if col in df.columns]
+    
+        #БАЗОВЫЕ СТАТИСТИКИ
+        df['ext_mean'] = df[avalibale_cols].mean(axis=1)
+        df['ext_std'] = df[avalibale_cols].std(axis=1)
+        df['ext_max'] = df[avalibale_cols].max(axis=1)
+        df['ext_min'] = df[avalibale_cols].min(axis=1)
+        df['ext_range'] = df['ext_max'] - df['ext_min']
+
+        #ВЗВКШАННОЕ СРЕДНЕЕ
+        weights_sum = sum(self.ext_weights[col] for col in avalibale_cols)
+        weighted_sum = sum(df[col].fillna(0) * self.ext_weights[col] for col in avalibale_cols)
+        df['ext_weight'] = weighted_sum/weights_sum
+
+        df['ext_missing_count'] = df[ext_cols].isnull().sum(axis=1)
+
+        self.features_added = ['ext_mean', 'ext_std', 'ext_max', 'ext_min', 'ext_range', 'ext_weight', 'ext_missing_count']
+        return df
+ 
+class Hypothesis10(BaseEstimator, TransformerMixin):
+    """
+    ГИПОТЕЗА 10: ФИНАНСОВЫЕ И ДЕМОГРАФИЧЕСКИЕ МЕТРИКИ
+    """
+    def __init__(self):
+        self.features_added = []
+
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        df = X.copy()
+        self.features_added = []
+
+        # ФИНАНСОВЫЕ КОЭФФИЦИЕНТЫ
+        if 'amt_credit' in df.columns and 'amt_income_total' in df.columns:
+            df['credit_income_ratio'] = safe_divide(df['amt_credit'], df['amt_income_total'])
+            df['annuity_income_ratio'] = safe_divide(df['amt_annuity'], df['amt_income_total'])
+            self.features_added.extend(['credit_income_ratio', 'annuity_income_ratio'])
+
+        if 'amt_credit' in df.columns and 'amt_annuity' in df.columns:
+            df['credit_annuity_ratio'] = safe_divide(df['amt_credit'], df['amt_annuity'])
+            self.features_added.append('credit_annuity_ratio')
+
+        if all(col in df.columns for col in ['amt_goods_price', 'amt_credit']):
+            df['goods_credit_diff'] = df['amt_goods_price'] - df['amt_credit']
+            df['goods_credit_ratio'] = safe_divide(df['amt_goods_price'], df['amt_credit'])
+            self.features_added.extend(['goods_credit_diff', 'goods_credit_ratio'])
+
+        # СЕМЕЙНЫЕ МЕТРИКИ
+        if all(col in df.columns for col in ['amt_income_total', 'cnt_fam_members']):
+            df['income_per_person'] = safe_divide(df['amt_income_total'], df['cnt_fam_members'])   
+            self.features_added.append('income_per_person')       
+
+        if all(col in df.columns for col in ['cnt_children', 'cnt_fam_members']):
+            df['children_ratio'] = safe_divide(df['cnt_children'], df['cnt_fam_members'])                                           
+            self.features_added.append('children_ratio')
+        
+        # ВОЗРАСТ И СТАЖ 
+        if 'days_birth' in df.columns:
+            df['age_years'] = (-df['days_birth']) / 365.25
+            self.features_added.append('age_years')
+
+        if 'days_employed' in df.columns:
+            df['days_employed_anomaly'] = (df['days_employed'] >= 365243).astype(int)
+            df['employment_years'] = np.where(df['days_employed'] >= 365243, 0, (-df['days_employed']) / 365.25)
+            self.features_added.extend(['employment_years', 'days_employed_anomaly'])
+
+        # КОМБИНИРОВАННЫЕ МЕТРИКИ
+        if all(col in df.columns for col in ['employment_years', 'age_years']):
+            df['employment_age_ratio'] = safe_divide(df['employment_years'], df['age_years'])
+            df['career_start_age'] = df['age_years'] - df['employment_years']
+            self.features_added.extend(['employment_age_ratio', 'career_start_age'])
+        
         return df
