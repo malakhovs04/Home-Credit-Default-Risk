@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # PostgreSQL для метаданных Airflow
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+
+  # Airflow в standalone режиме (самый простой)
+  airflow:
+    image: apache/airflow:2.9.3
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+    # Просто standalone - он сам всё сделает
+    command: "standalone"
