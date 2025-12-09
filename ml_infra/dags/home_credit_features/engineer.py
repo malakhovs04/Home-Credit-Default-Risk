@@ -7,7 +7,7 @@ from .aggregators import (
         BureauAggregator, PreviousApplicationAggregator, 
         InstallmentsAggregator, CreditCardAggregator, PosCashAggregator)
 from .datapolish_log import DataPolish
-from .datapolish_log import Hypothesis8, Hypothesis9, Hypothesis10
+from .hypotheses_log import Hypothesis8, Hypothesis9, Hypothesis10
 
 class HomeCreditFeatureEngineer:
     """
@@ -29,14 +29,12 @@ class HomeCreditFeatureEngineer:
         self.dataframes = {}
         self.aggregated_features = {}
         
-        # Инициализация агрегаторов
         self.bureau_agg = BureauAggregator(verbose=verbose)
         self.previous_app_agg = PreviousApplicationAggregator(verbose=verbose)
         self.installments_agg = InstallmentsAggregator(verbose=verbose)
         self.credit_card_agg = CreditCardAggregator(verbose=verbose)
         self.pos_cash_agg = PosCashAggregator(verbose=verbose)
         
-        # Инициализация трансформеров
         self.datapolish = None
         self.hypothesis8 = Hypothesis8(verbose=verbose)
         self.hypothesis9 = Hypothesis9(verbose=verbose)
@@ -144,7 +142,6 @@ class HomeCreditFeatureEngineer:
             else:
                 self.log(" Bureau: данные отсутствуют или пустые")
         
-        # 2. Previous applications агрегация
         if 'previous_application' in self.dataframes:
             if not self.dataframes['previous_application'].empty:
                 previous_app_features = self.previous_app_agg.process(
@@ -154,7 +151,6 @@ class HomeCreditFeatureEngineer:
             else:
                 self.log(" Previous applications: данные отсутствуют или пустые")
         
-        # 3. Installments агрегация
         if 'installments_payments' in self.dataframes:
             if not self.dataframes['installments_payments'].empty:
                 installments_features = self.installments_agg.process(
@@ -285,14 +281,14 @@ class HomeCreditFeatureEngineer:
         
         return train_with_hypotheses
     
-    def get_statistics(self) -> Dict:
-        """Получение статистики по пайплайну"""
-        stats = {
-            'tables_loaded': len(self.dataframes),
-            'aggregators_used': len(self.aggregated_features),
-            'total_features_generated': sum(
-                len(features.columns) for features in self.aggregated_features.values()
-            ) if self.aggregated_features else 0,
-        }
-        
-        return stats
+def get_statistics(self) -> Dict:
+    """Получение статистики по пайплайну"""
+    stats = {
+        'tables_loaded': len(self.dataframes),
+        'aggregators_used': len(self.aggregated_features),
+        'total_features_generated': sum(
+            len(features.columns) for features in self.aggregated_features.values()
+        ) if self.aggregated_features else 0,
+    }
+    
+    return stats  
