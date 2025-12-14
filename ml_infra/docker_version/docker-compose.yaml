@@ -1,0 +1,82 @@
+#version: '3.8'
+
+services:
+  # 1. PostgreSQL для ваших данных Home Credit (основная БД)
+  my-postgres:
+    image: postgres:15
+    container_name: my-postgres
+    environment:
+      POSTGRES_PASSWORD: 12345 # Пароль из вашего DAG
+      POSTGRES_DB: postgres
+    volumes:
+      - my_postgres_data:/var/lib/postgresql/data # Том для сохранения данных
+    ports:
+      - "5432:5432" # Проброс порта для доступа с хоста
+    networks:
+      - home-credit-network
+
+  # 2. PostgreSQL для метаданных Airflow
+  airflow-postgres:
+    image: postgres:15
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - home-credit-network
+
+  # 3. Сервис Airflow
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: airflow
+    depends_on:
+      - airflow-postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkey
+      AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./dags/home_credit_features:/opt/airflow/home_credit_features
+      - /var/run/docker.sock:/var/run/docker.sock # Для запуска Docker-контейнеров
+    ports:
+      - "8080:8080" # Веб-интерфейс Airflow
+    networks:
+      - home-credit-network
+    command: standalone
+    restart: unless-stopped
+
+  # 4. Ваш ML-процессор для обработки данных
+  home-credit-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: home-credit-processor:latest # Образ, который вы собирали
+    container_name: home-credit-processor
+    environment:
+      # Параметры из вашего DAG для подключения к БД
+      TEST_MODE: "true"
+      ROW_LIMIT: "100"
+      SAMPLE_SIZE: "500"
+      DB_HOST: "my-postgres"  # Ключевой момент: имя сервиса из этого файла
+      DB_USER: "postgres"
+      DB_PASSWORD: "12345"
+      DB_NAME: "postgres"
+      DB_PORT: "5432"
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - home-credit-network
+
+volumes:
+  my_postgres_data:     # Том для данных основной БД
+  airflow_postgres_data: # Том для данных Airflow БД
+
+networks:
+  home-credit-network:
+    external: true # Используем созданную вами сеть
