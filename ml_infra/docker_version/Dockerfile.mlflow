@@ -1,0 +1,8 @@
+# Dockerfile.mlflow
+FROM ghcr.io/mlflow/mlflow:latest
+
+# Устанавливаем psycopg2 для работы с PostgreSQL
+RUN pip install --no-cache-dir psycopg2-binary
+
+# Устанавливаем netcat для проверки портов
+RUN apt-get update && apt-get install -y netcat && rm -rf /var/lib/apt/lists/*

@@ -6,12 +6,12 @@ services:
     image: postgres:15
     container_name: my-postgres
     environment:
-      POSTGRES_PASSWORD: 12345 # Пароль из вашего DAG
+      POSTGRES_PASSWORD: 12345
       POSTGRES_DB: postgres
     volumes:
-      - my_postgres_data:/var/lib/postgresql/data # Том для сохранения данных
+      - my_postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432" # Проброс порта для доступа с хоста
+      - "5432:5432"
     networks:
       - home-credit-network
 
@@ -44,9 +44,9 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
       - ./dags/home_credit_features:/opt/airflow/home_credit_features
-      - /var/run/docker.sock:/var/run/docker.sock # Для запуска Docker-контейнеров
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
-      - "8080:8080" # Веб-интерфейс Airflow
+      - "8080:8080"
     networks:
       - home-credit-network
     command: standalone
@@ -57,26 +57,77 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: home-credit-processor:latest # Образ, который вы собирали
+    image: home-credit-processor:latest
     container_name: home-credit-processor
     environment:
-      # Параметры из вашего DAG для подключения к БД
       TEST_MODE: "true"
       ROW_LIMIT: "100"
       SAMPLE_SIZE: "500"
-      DB_HOST: "my-postgres"  # Ключевой момент: имя сервиса из этого файла
+      DB_HOST: "my-postgres"
       DB_USER: "postgres"
       DB_PASSWORD: "12345"
       DB_NAME: "postgres"
       DB_PORT: "5432"
       PYTHONUNBUFFERED: "1"
+      # ДОБАВЛЯЕМ переменные для MLflow
+      LOG_TO_MLFLOW: "true"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
     networks:
       - home-credit-network
 
+  # 5. PostgreSQL для метаданных MLflow
+  mlflow-postgres:
+    image: postgres:15
+    container_name: mlflow-postgres
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow
+      POSTGRES_DB: mlflow
+    volumes:
+      - mlflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - home-credit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 6. MLflow Tracking Server
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow
+    command: >
+      /bin/sh -c "
+        echo 'Waiting for PostgreSQL...';
+        sleep 10;
+        mlflow server
+          --backend-store-uri postgresql://mlflow:mlflow@mlflow-postgres/mlflow
+          --default-artifact-root /mlflow/artifacts
+          --host 0.0.0.0
+          --port 5000
+          --serve-artifacts
+          --allowed-hosts '*'
+      "
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    ports:
+      - "5050:5000"
+    networks:
+      - home-credit-network
+    depends_on:
+      mlflow-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
-  my_postgres_data:     # Том для данных основной БД
-  airflow_postgres_data: # Том для данных Airflow БД
+  my_postgres_data:
+  airflow_postgres_data:
+  mlflow_postgres_data:
+  mlflow_artifacts:
 
 networks:
   home-credit-network:
-    external: true # Используем созданную вами сеть
+    external: true

@@ -1,0 +1,38 @@
+# Создайте файл .dockerignore в папке docker_version
+@"
+# Исключаем папку logs
+logs/
+# Исключаем файлы логов
+*.log
+# Исключаем скрытые файлы
+.git/
+.gitignore
+.dockerignore
+# Исключаем папки, которые не нужны в образе
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+# Исключаем большие файлы
+*.csv
+*.gz
+*.zip
+*.tar
+# Исключаем конфигурационные файлы
+.env
+.env.local
+# Исключаем документацию
+README.md
+# Исключаем временные файлы
+tmp/
+temp/
+# Исключаем системные файлы
+.DS_Store
+Thumbs.db
+"@ | Out-File -FilePath ".dockerignore" -Encoding UTF8
+
+Write-Host "✅ Файл .dockerignore создан" -ForegroundColor Green
