@@ -1,10 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import (
-    roc_auc_score, roc_curve, precision_recall_curve, auc,
-    accuracy_score, precision_score, recall_score, f1_score,
-)
+from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve, auc, accuracy_score, precision_score, recall_score, f1_score
 from sklearn.model_selection import train_test_split
 import os
 from datetime import datetime
@@ -170,8 +167,8 @@ class ModelTrainer:
 
     def make_submission(self, test_ids, test_proba):
         sub = pd.DataFrame({
-            'SK_ID_CURR': test_ids,
-            'TARGET': test_proba
+            'sk_id_curr': test_ids,
+            'target': test_proba
         })
         filename = f"{self.results_dir}/submission_{self.name}.csv"
         sub.to_csv(filename, index=False)
