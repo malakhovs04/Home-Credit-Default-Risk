@@ -1,5 +1,4 @@
 # dags/home_credit_model_training.py
-
 from datetime import timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
@@ -11,7 +10,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 3,  # Увеличил retries до 3
     'retry_delay': timedelta(minutes=5),
     'start_date': pendulum.datetime(2024, 1, 1, tz="UTC"),
 }
@@ -34,34 +33,32 @@ with DAG(
         api_version='auto',
         auto_remove='success',
         docker_url='unix:///var/run/docker.sock',
-        network_mode='bridge',  # bridge + explicit host для MLflow
+        network_mode='bridge',
         environment={
-            # БД — работает через host.docker.internal
             'DB_HOST': 'host.docker.internal',
             'DB_USER': 'postgres',
             'DB_PASSWORD': '12345',
             'DB_NAME': 'postgres',
             'DB_PORT': '5432',
 
-            # Параметры модели
             'MODEL_TYPE': 'catboost',
             'TABLE_NAME': 'train_data_half_cleaned',
             'EXPERIMENT_NAME': 'home-credit-default-risk-ohe',
             'ROW_LIMIT': '1000',
             'TEST_MODE': 'false',
 
-            # MLflow — используем localhost внутри контейнера (проброс порта через Docker)
             'LOG_TO_MLFLOW': 'true',
-            'MLFLOW_TRACKING_URI': 'http://host.docker.internal:5050',  # оставляем так
+            'MLFLOW_TRACKING_URI': 'http://host.docker.internal:5050',
 
             'PYTHONUNBUFFERED': '1',
         },
         command='python /app/train_model.py',
         mount_tmp_dir=False,
-        # Добавляем extra_hosts для надёжности (резервный фикс)
         extra_hosts={
-            'host.docker.internal': 'host-gateway',  # Mac-specific фикс для resolution
+            'host.docker.internal': 'host-gateway',
         },
+        # Добавляем dns для стабильности resolution
+        dns=['8.8.8.8'],
     )
 
     success = DummyOperator(task_id='success')

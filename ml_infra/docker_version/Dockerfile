@@ -4,6 +4,9 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    libgomp1 \
+    libgl1 \         
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Устанавливаем Python библиотеки
@@ -21,14 +24,16 @@ RUN pip install --no-cache-dir \
 # Создаем рабочую директорию
 WORKDIR /app
 
-# Копируем ТОЛЬКО необходимые файлы
+# Копируем необходимые файлы
 COPY train_model.py model_trainer_mlflow.py ./
 
 # Устанавливаем переменные окружения
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV MPLBACKEND=Agg
 
 # Проверяем импорт
-RUN python -c "from model_trainer_mlflow import ModelTrainerMLflow; print('✅ ModelTrainerMLflow импортирован')"
+RUN python -c "from model_trainer_mlflow import ModelTrainerMLflow; print('ModelTrainerMLflow импортирован успешно')"
 
+# Команда запуска
 CMD ["python", "train_model.py"]

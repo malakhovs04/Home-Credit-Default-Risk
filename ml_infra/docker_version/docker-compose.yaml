@@ -1,7 +1,5 @@
-#version: '3.8'
-
 services:
-  # 1. PostgreSQL для ваших данных Home Credit (основная БД)
+  # 1. PostgreSQL для данных Home Credit
   my-postgres:
     image: postgres:15
     container_name: my-postgres
@@ -14,6 +12,11 @@ services:
       - "5432:5432"
     networks:
       - home-credit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # 2. PostgreSQL для метаданных Airflow
   airflow-postgres:
@@ -27,19 +30,27 @@ services:
       - airflow_postgres_data:/var/lib/postgresql/data
     networks:
       - home-credit-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 3. Сервис Airflow
+  # 3. Airflow
   airflow:
-    image: apache/airflow:2.9.3
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     container_name: airflow
     depends_on:
-      - airflow-postgres
+      airflow-postgres:
+        condition: service_healthy
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkey
-      AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: airflow
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
@@ -47,18 +58,23 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8080:8080"
-    networks:
-      - home-credit-network
     command: standalone
     restart: unless-stopped
+    networks:
+      - home-credit-network
 
-  # 4. Ваш ML-процессор для обработки данных
+  # 4. ML-процессор
   home-credit-processor:
     build:
       context: .
       dockerfile: Dockerfile
     image: home-credit-processor:latest
     container_name: home-credit-processor
+    depends_on:
+      my-postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
     environment:
       TEST_MODE: "true"
       ROW_LIMIT: "100"
@@ -69,65 +85,43 @@ services:
       DB_NAME: "postgres"
       DB_PORT: "5432"
       PYTHONUNBUFFERED: "1"
-      # ДОБАВЛЯЕМ переменные для MLflow
       LOG_TO_MLFLOW: "true"
       MLFLOW_TRACKING_URI: "http://mlflow:5000"
     networks:
       - home-credit-network
 
-  # 5. PostgreSQL для метаданных MLflow
-  mlflow-postgres:
-    image: postgres:15
-    container_name: mlflow-postgres
-    environment:
-      POSTGRES_USER: mlflow
-      POSTGRES_PASSWORD: mlflow
-      POSTGRES_DB: mlflow
-    volumes:
-      - mlflow_postgres_data:/var/lib/postgresql/data
-    networks:
-      - home-credit-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mlflow"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # 6. MLflow Tracking Server
   mlflow:
-    build:
-      context: .
-      dockerfile: Dockerfile.mlflow
+    image: ghcr.io/mlflow/mlflow:latest
     container_name: mlflow
-    command: >
-      /bin/sh -c "
-        echo 'Waiting for PostgreSQL...';
-        sleep 10;
-        mlflow server
-          --backend-store-uri postgresql://mlflow:mlflow@mlflow-postgres/mlflow
-          --default-artifact-root /mlflow/artifacts
-          --host 0.0.0.0
-          --port 5000
-          --serve-artifacts
-          --allowed-hosts '*'
-      "
+    command:
+      - mlflow
+      - server
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --default-artifact-root
+      - /mlflow/artifacts
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+    environment:
+      MLFLOW_SERVER_DISABLE_SECURITY_MIDDLEWARE: "true" 
     volumes:
       - mlflow_artifacts:/mlflow/artifacts
+      - mlflow_db:/mlflow
     ports:
       - "5050:5000"
     networks:
       - home-credit-network
-    depends_on:
-      mlflow-postgres:
-        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   my_postgres_data:
   airflow_postgres_data:
-  mlflow_postgres_data:
   mlflow_artifacts:
+  mlflow_db:
 
 networks:
   home-credit-network:
-    external: true
+    driver: bridge
