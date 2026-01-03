@@ -100,3 +100,80 @@
 |9| Внешние скоринги | 0,76641 | 0.76591 | submission_Hypothesis9_Installments.csv|
 |10| Финансовые и демографические метрики| 0.77043 | 0.77449 | submission_Hypothesis10_Installments.csv |
 |11|Соединяем 8 + 9 + 10 гипотезы вместе| 0,77300 | 0,77449 |submission_comb_gup.csv |
+
+## Инструкция по запуску ML-инфраструктуры 
+
+**Требования**  
+- Docker Desktop запущен  
+- Репозиторий склонирован: `https://github.com/malakhovs04/Home-Credit-Default-Risk`  
+- Данные Kaggle находятся в `Home-Credit-Default-Risk/data`
+
+### 1. Развёртывание базы данных (PostgreSQL в Docker)
+
+1. Откройте терминал в корне проекта.
+2. Запустите PostgreSQL:  
+   ```bash
+   docker-compose up -d postgres
+   ```
+3. Загрузите данные в БД:  
+   ```bash
+   python ml_infra/load_data.py
+   ```
+   Создается новая таблица в нашей БД
+
+### 2. Запуск Airflow с PythonOperator (DAG Data Preparation)
+
+1. Перейдите в папку:  
+   ```bash
+   cd ml_infra
+   ```
+2. Соберите и запустите:  
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
+3. Откройте Airflow UI: http://localhost:8080
+4. Получите пароль администратора:  
+   ```bash
+   docker exec -it ml_infra-airflow-1 cat /opt/airflow/standalone_admin_password.txt
+   ```
+   Логин: `admin`
+5. Настройте соединение с БД:  
+   Admin → Connections → Create  
+   - Connection Id: `home_credit_db`  
+   - Connection Type: Postgres  
+   - Host: `my-postgres`  
+   - Schema: `postgres`  
+   - Login: `postgres`  
+   - Password: `12345`  
+   - Port: 5432
+6. Запустите DAG:  
+   В UI найдите DAG `home_credit_full_preparation` и выполните.  
+   После выполнения появится итоговая таблица в БД.
+
+### 3. Запуск Airflow с DockerOperator + MLflow
+
+1. Перейдите в папку:  
+   ```bash
+   cd ml_infra/docker_version
+   ```
+2. Соберите и запустите всё окружение (Airflow + MLflow + PostgreSQL):  
+   ```bash
+   docker-compose build
+   docker-compose up -d
+   ```
+3. Предврительно выполнить load_data.py
+4. Airflow UI: http://localhost:8080 
+5. MLflow UI: http://localhost:5050
+6. Запустите DAG подготовки данных:  
+   В UI найдите DAG `preparation` и выполните(также создаеться отдельная итоговая таблица в БД, как в прошлом пункте)
+7. Запустите DAG обучения модели:  
+   В UI найдите DAG `model_training_dag` - выполните Модель обучится, все параметры, метрики и артефакты запишутся в MLflow.  
+   Проверьте эксперименты в http://localhost:5050.
+
+### Остановка окружений
+
+В соответствующей папке (`ml_infra` или `ml_infra/docker_version`):  
+```bash
+docker-compose stop
+```
